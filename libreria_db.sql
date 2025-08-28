@@ -123,8 +123,127 @@ ALTER TABLE libros
 ALTER TABLE pagos
     ADD COLUMN fecha_confirtmacion DATE AFTER monto_pago;
 
+BEGIN TRANSACTION;
+
+-- Verificar que todos los libros estén entregados
+IF NOT EXISTS (
+    SELECT 1 FROM detalles_pedido
+    WHERE id_pedido = [id_pedido] AND entregado = FALSE
+) THEN
+    -- Eliminar los registros del pedido
+    DELETE FROM Detalles_Pedido
+    WHERE id_pedido = [id_pedido];
+
+    -- Opcional: Eliminar la tabla (solo si es seguro)
+    -- DROP TABLE Detalles_Pedido;
+END IF;
+
+COMMIT;
+
 -- Eliminar tabla
 DROP TABLE pagos;
 
 -- Truncar tabla
 TRUNCATE TABLE pedidos;
+
+-- Agregar Datos
+
+INSERT INTO clientes (nombre_cliente, correo_cliente, telefono_cliente, direccion_cliente) VALUES
+('Juan Pérez', 'juan.perez@email.com', '5512345678', 'Av. Siempre Viva 123'),
+('María García', 'maria.garcia@email.com', '5523456789', 'Calle Falsa 456'),
+('Carlos López', 'carlos.lopez@email.com', '5534567890', 'Blvd. de los Sueños 789'),
+('Ana Martínez', 'ana.martinez@email.com', '5545678901', 'Paseo de la Luna 101'),
+('Luis Torres', 'luis.torres@email.com', '5556789012', 'Vía Láctea 202'),
+('Sofía Ramírez', 'sofia.ramirez@email.com', '5567890123', 'Avenida del Sol 303'),
+('Pedro Sánchez', 'pedro.sanchez@email.com', '5578901234', 'Camino del Bosque 404'),
+('Laura Gómez', 'laura.gomez@email.com', '5589012345', 'Plaza del Viento 505'),
+('Diego Fernández', 'diego.fernandez@email.com', '5590123456', 'Río de la Paz 606'),
+('Gabriela Díaz', 'gabriela.diaz@email.com', '5511223344', 'Cerro de la Esperanza 707'),
+('Ricardo Milla', 'ricardo.milla@email.com', '5522334455', 'Volcán del Silencio 808'),
+('Patricia Castro', 'patricia.castro@email.com', '5533445566', 'Lago de la Osa 909'),
+('Jorge Vargas', 'jorge.vargas@email.com', '5544556677', 'Estrella Polar 110'),
+('Verónica Herrera', 'veronica.herrera@email.com', '5555667788', 'Valle Escondido 220'),
+('Arturo Morales', 'arturo.morales@email.com', '5566778899', 'Canto del Pájaro 330'),
+('Cristina Ortiz', 'cristina.ortiz@email.com', '5577889900', 'Sendero de las Nubes 440'),
+('Roberto Osorio', 'roberto.osorio@email.com', '5588990011', 'Luz de Luna 550'),
+('Diana Nuñez', 'diana.nunez@email.com', '5599001122', 'Rocío del Mar 660'),
+('Javier Guerrero', 'javier.guerrero@email.com', '5500112233', 'Sol Naciente 770'),
+('Mónica Valdés', 'monica.valdes@email.com', '5511003322', 'Puesta del Sol 880');
+
+INSERT INTO libros (titulo_libro, autor_libro, precio_libro, cantidad_disponible, categoria_libro) VALUES
+('El Código Da Vinci', 'Dan Brown', '250.00', 100, 'Misterio'),
+('Cien Años de Soledad', 'Gabriel García Márquez', '300.50', 50, 'Ficción'),
+('1984', 'George Orwell', '150.75', 25, 'Ciencia Ficción'),
+('Orgullo y Prejuicio', 'Jane Austen', '180.20', 75, 'Romance'),
+('Don Quijote de la Mancha', 'Miguel de Cervantes', '450.00', 30, 'Clásico'),
+('El Señor de los Anillos', 'J.R.R. Tolkien', '550.00', 40, 'Fantasía'),
+('Crimen y Castigo', 'Fiódor Dostoievski', '210.00', 15, 'Drama'),
+('Las Crónicas de Narnia', 'C.S. Lewis', '280.00', 60, 'Fantasía'),
+('Rayuela', 'Julio Cortázar', '290.00', 35, 'Ficción'),
+('Sapiens', 'Yuval Noah Harari', '320.00', 80, 'Historia');
+
+INSERT INTO pedidos (id_cliente, fecha_pedido, total_pedido, estado_pedido) VALUES
+(1, '2023-01-10', 250.00, 'Pendiente'),
+(2, '2023-01-15', 300.50, 'Pendiente'),
+(3, '2023-01-18', 150.75, 'Pendiente'),
+(4, '2023-01-20', 180.20, 'Pendiente'),
+(5, '2023-01-22', 450.00, 'Pendiente'),
+(6, '2023-01-25', 550.00, 'Pendiente'),
+(7, '2023-01-28', 210.00, 'Pendiente'),
+(8, '2023-02-01', 280.00, 'Pendiente'),
+(9, '2023-02-05', 290.00, 'Pendiente'),
+(10, '2023-02-08', 320.00, 'Pendiente'),
+(11, '2023-02-10', 250.00, 'Pendiente'),
+(12, '2023-02-12', 300.50, 'Pendiente'),
+(13, '2023-02-15', 150.75, 'Pendiente'),
+(14, '2023-02-18', 180.20, 'Pendiente'),
+(15, '2023-02-20', 450.00, 'Pendiente'),
+(16, '2023-02-25', 550.00, 'Pendiente'),
+(17, '2023-03-01', 210.00, 'Pendiente'),
+(18, '2023-03-05', 280.00, 'Pendiente'),
+(19, '2023-03-08', 290.00, 'Pendiente'),
+(20, '2023-03-10', 320.00, 'Pendiente');
+
+INSERT INTO detalles_pedido (id_pedido, id_libro, cantidad_libro, precio_libro) VALUES
+(1, 1, 1, 250.00),
+(2, 2, 1, 300.50),
+(3, 3, 1, 150.75),
+(4, 4, 1, 180.20),
+(5, 5, 1, 450.00),
+(6, 6, 1, 550.00),
+(7, 7, 1, 210.00),
+(8, 8, 1, 280.00),
+(9, 9, 1, 290.00),
+(10, 10, 1, 320.00),
+(11, 1, 1, 250.00),
+(12, 2, 1, 300.50),
+(13, 3, 1, 150.75),
+(14, 4, 1, 180.20),
+(15, 5, 1, 450.00),
+(16, 6, 1, 550.00),
+(17, 7, 1, 210.00),
+(18, 8, 1, 280.00),
+(19, 9, 1, 290.00),
+(20, 10, 1, 320.00);
+
+INSERT INTO pagos (id_pedido, fecha_pago, monto_pago, metodo_pago) VALUES
+(1, '2023-01-10', 250.00, 'Tarjeta'),
+(2, '2023-01-15', 300.50, 'Efectivo'),
+(3, '2023-01-18', 150.75, 'Tarjeta'),
+(4, '2023-01-20', 180.20, 'Transferencia'),
+(5, '2023-01-22', 450.00, 'Tarjeta'),
+(6, '2023-01-25', 550.00, 'Efectivo'),
+(7, '2023-01-28', 210.00, 'Tarjeta'),
+(8, '2023-02-01', 280.00, 'Transferencia'),
+(9, '2023-02-05', 290.00, 'Tarjeta'),
+(10, '2023-02-08', 320.00, 'Efectivo'),
+(11, '2023-02-10', 250.00, 'Transferencia'),
+(12, '2023-02-12', 300.50, 'Tarjeta'),
+(13, '2023-02-15', 150.75, 'Efectivo'),
+(14, '2023-02-18', 180.20, 'Transferencia'),
+(15, '2023-02-20', 450.00, 'Tarjeta'),
+(16, '2023-02-25', 550.00, 'Efectivo'),
+(17, '2023-03-01', 210.00, 'Transferencia'),
+(18, '2023-03-05', 280.00, 'Tarjeta'),
+(19, '2023-03-08', 290.00, 'Efectivo'),
+(20, '2023-03-10', 320.00, 'Tarjeta');
