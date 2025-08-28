@@ -1,7 +1,7 @@
+-- Active: 1755731998654@@127.0.0.1@3306@libreria_db
 CREATE DATABASE IF NOT EXISTS libreria_db;
 
 USE libreria_db;
-
 
 -- TABLAS
 CREATE TABLE clientes
@@ -29,7 +29,7 @@ CREATE TABLE libros
   id_libro            INT           NOT NULL AUTO_INCREMENT,
   titulo_libro        VARCHAR(225)  NOT NULL,
   autor_libro         VARCHAR(100)  NOT NULL,
-  precio_libro        VARCHAR(10,2) NOT NULL,
+  precio_libro        DECIMAL(10,2) NOT NULL,
   cantidad_disponible INT           NOT NULL,
   categoria_libro     VARCHAR(50)   NOT NULL,
   PRIMARY KEY (id_libro)
@@ -64,13 +64,14 @@ ADD CONSTRAINT CHK_telefono_numeros_longitud
 CHECK (LENGTH(telefono_cliente) = 10 AND telefono_cliente NOT LIKE '%[^0-9]%');
 
 -- Alternativa que me dio Gemini, dice que es una herramienta mucho mas poderosa
-ALTER TABLE clientes
+/*ALTER TABLE clientes
 ADD CONSTRAINT CHK_telefono_numeros_longitud
-CHECK (telefono_cliente REGEXP '^[0-9]{10}$')
--- REGEXP es un operador que busca patrones en una cadena (Regular Expression)
---  ^ indica que debe coincidir con el inicio de la cadena, [] conjunto de caracteres que se busca
---  {} cuantificador que indica la cantidad de veces que se debe repetir el conjunto ,  $ indica que debe coincidir con el final de la cadena
+CHECK (telefono_cliente REGEXP '^[0-9]{10}$');
+REGEXP es un operador que busca patrones en una cadena (Regular Expression)
+^ indica que debe coincidir con el inicio de la cadena, [] conjunto de caracteres que se busca
+{} cuantificador que indica la cantidad de veces que se debe repetir el conjunto ,  $ indica que debe coincidir con el final de la cadena*/
 
+ALTER TABLE clientes
 ADD CONSTRAINT UQ_correo_cliente UNIQUE (correo_cliente);
 
 -- Restricciones libros
@@ -85,7 +86,9 @@ CHECK (cantidad_disponible > 0);
 ALTER TABLE pedidos
   ADD CONSTRAINT FK_clientes_TO_pedidos
     FOREIGN KEY (id_cliente)
-    REFERENCES clientes (id_cliente);
+    REFERENCES clientes (id_cliente)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE;
 
 ALTER TABLE pedidos
   ADD CONSTRAINT UQ_id_cliente UNIQUE (id_cliente);
@@ -95,12 +98,16 @@ ALTER TABLE pedidos
 ALTER TABLE detalles_pedido
   ADD CONSTRAINT FK_pedidos_TO_detalles_pedido
     FOREIGN KEY (id_pedido)
-    REFERENCES pedidos (id_pedido);
+    REFERENCES pedidos (id_pedido)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE;
 
 ALTER TABLE detalles_pedido
   ADD CONSTRAINT FK_libros_TO_detalles_pedido
     FOREIGN KEY (id_libro)
-    REFERENCES libros (id_libro);
+    REFERENCES libros (id_libro)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE;
 
 ALTER TABLE detalles_pedido
   ADD CONSTRAINT UQ_id_libro UNIQUE (id_libro);
@@ -110,7 +117,9 @@ ALTER TABLE detalles_pedido
 ALTER TABLE pagos
   ADD CONSTRAINT FK_pedidos_TO_pagos
     FOREIGN KEY (id_pedido)
-    REFERENCES pedidos (id_pedido);
+    REFERENCES pedidos (id_pedido)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE;
 
 -- Modificaciones 
 
@@ -121,30 +130,7 @@ ALTER TABLE libros
     MODIFY COLUMN precio_libro DECIMAL(10,3);
 
 ALTER TABLE pagos
-    ADD COLUMN fecha_confirtmacion DATE AFTER monto_pago;
-
-BEGIN TRANSACTION;
-
--- Verificar que todos los libros estén entregados
-IF NOT EXISTS (
-    SELECT 1 FROM detalles_pedido
-    WHERE id_pedido = [id_pedido] AND entregado = FALSE
-) THEN
-    -- Eliminar los registros del pedido
-    DELETE FROM Detalles_Pedido
-    WHERE id_pedido = [id_pedido];
-
-    -- Opcional: Eliminar la tabla (solo si es seguro)
-    -- DROP TABLE Detalles_Pedido;
-END IF;
-
-COMMIT;
-
--- Eliminar tabla
-DROP TABLE pagos;
-
--- Truncar tabla
-TRUNCATE TABLE pedidos;
+    ADD COLUMN fecha_confirmacion DATE AFTER monto_pago;
 
 -- Agregar Datos
 
@@ -214,17 +200,7 @@ INSERT INTO detalles_pedido (id_pedido, id_libro, cantidad_libro, precio_libro) 
 (7, 7, 1, 210.00),
 (8, 8, 1, 280.00),
 (9, 9, 1, 290.00),
-(10, 10, 1, 320.00),
-(11, 1, 1, 250.00),
-(12, 2, 1, 300.50),
-(13, 3, 1, 150.75),
-(14, 4, 1, 180.20),
-(15, 5, 1, 450.00),
-(16, 6, 1, 550.00),
-(17, 7, 1, 210.00),
-(18, 8, 1, 280.00),
-(19, 9, 1, 290.00),
-(20, 10, 1, 320.00);
+(10, 10, 1, 320.00);
 
 INSERT INTO pagos (id_pedido, fecha_pago, monto_pago, metodo_pago) VALUES
 (1, '2023-01-10', 250.00, 'Tarjeta'),
@@ -247,3 +223,27 @@ INSERT INTO pagos (id_pedido, fecha_pago, monto_pago, metodo_pago) VALUES
 (18, '2023-03-05', 280.00, 'Tarjeta'),
 (19, '2023-03-08', 290.00, 'Efectivo'),
 (20, '2023-03-10', 320.00, 'Tarjeta');
+
+UPDATE pagos
+SET fecha_confirmacion = fecha_pago
+WHERE fecha_confirmacion IS NULL;
+
+UPDATE pedidos
+SET estado_pedido = 'Entregado'
+WHERE id_pedido IN (SELECT id_pedido FROM pagos);
+-- Verificar que todos los libros estén entregados
+START TRANSACTION;
+DELETE FROM detalles_pedido 
+WHERE id_pedido IN 
+(SELECT id_pedido 
+ FROM pedidos 
+ WHERE estado_pedido = 'Entregado');
+
+-- CONFIRMAR O DESHACER TRANSACCIÓN
+COMMIT;
+ROLLBACK;
+-- Eliminar tabla
+DROP TABLE pagos;
+
+-- Truncar tabla
+TRUNCATE TABLE pedidos;
